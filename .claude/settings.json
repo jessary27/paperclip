@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(./server/**)",
+      "Edit(./ui/**)",
+      "Edit(./packages/**)",
+      "Edit(./cli/**)",
+      "Edit(./scripts/**)",
+      "Edit(./tests/**)",
+      "Edit(./docs/**)",
+      "Edit(./studio/**)",
+      "Edit(./.claude/**)",
+      "Write(./server/**)",
+      "Write(./ui/**)",
+      "Write(./packages/**)",
+      "Write(./cli/**)",
+      "Write(./scripts/**)",
+      "Write(./tests/**)",
+      "Write(./docs/**)",
+      "Write(./studio/**)",
+      "Bash(find . *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(mkdir -p *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./credentials/**)",
+      "Bash(cat .env*)",
+      "Bash(cat */secrets/*)"
+    ],
+    "defaultMode": "default"
+  },
+  "plansDirectory": "./plans",
+  "enabledMcpjsonServers": [
+    "playwright"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/hooks/otel-governance-check.sh",
+            "timeout": 15,
+            "statusMessage": "Governance check..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/hooks/protect-files.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "./.claude/hooks/log-hook-event.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git *)",
+            "command": "./.claude/hooks/log-hook-event.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/agent-execution-logger.sh",
+            "timeout": 5,
+            "statusMessage": "Agent execution logging"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./.claude/hooks/quality-gate-stop.sh",
+            "timeout": 15,
+            "statusMessage": "paperclip quality gate"
+          }
+        ]
+      }
+    ]
+  }
+}
